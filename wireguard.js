@@ -1,16 +1,29 @@
 const execSync = require('child_process').execSync
 const config = require('./config')
+const { exec } = require('child_process')
 const Peer = require('./mongoose').Peer
 
 function getStatus() {
     return JSON.parse(execSync('bash ./json.sh'))
 }
 
-// add a peer in WireGuard CLI and update the database
+// initialize the WireGuard CLI according to the database
+function initialize() {
+    // clear WireGuard CLI configurations, your wg0.conf should only contain the interface and no peers (unless you have default ones for access control)
+    execSync('systemctl restart wg-quick@wg0')
+
+    // load peers in the database into CLI (if it is enabled)
+    Peer.find({ enabled: true })
+        .then(peers => {
+            for (i in peers) {
+                execSync('wg set wg0 peer ' + peers[i].publicKey + ' allowed-ips ' + peers[i].allowedIP + '/32')
+            }
+        })
+}
+
+// add a peer in WireGuard CLI and updates the database
 async function addPeer(user) {
     // generate a valid peer IP in sequence
-
-    console.log(await Peer.find({}).exec())
 
     async function getAllowedIP() {
         function IPtoInt(IP) {
@@ -58,18 +71,65 @@ async function addPeer(user) {
 }
 
 // removes the peer in WireGuard CLI and updates the database
-function blockPeer(publicKey) {
+async function blockPeer(publicKey) {
+    // look up the peer in database
+    peer = await Peer.findOne({ publicKey: publicKey }).exec()
 
-    return execSync('bash ./block.sh ' + publicKey).toString()
+    // check if the peer exists
+    if (!peer) {
+        return "Peer not found"
+    }
+    peer.enabled = false
+    await peer.save()
+
+    // remove the peer from CLI
+    // !! use peer.publicKey instead of publicKey to avoid command injection
+    execSync('wg set wg0 peer ' + peer.publicKey + ' remove')
+    return peer.publicKey
 }
 
 // restores the peer in the WireGuard CLI and updates the database
-function unblockPeer(publicKey) {
+async function unblockPeer(publicKey) {
+    // look up the peer in database
+    peer = await Peer.findOne({ publicKey: publicKey }).exec()
 
+    // check if the peer exists
+    if (!peer) {
+        return "Peer not found"
+    }
+    peer.enabled = true
+    await peer.save()
+
+    // add the peer to CLI
+    // !! use peer.publicKey instead of publicKey to avoid command injection
+    execSync('wg set wg0 peer ' + peer.publicKey + ' allowed-ips ' + peer.allowedIP + '/32')
+    return peer.publicKey
+}
+
+// removes the peer in WireGuard CLI and the database 
+async function removePeer(publicKey) {
+    // look up the peer in database
+    peer = await Peer.findOne({ publicKey: publicKey }).exec()
+
+    // check if the peer exists
+    if (!peer) {
+        return "Peer not found"
+    }
+
+    // remove the peer from the database
+    execSync('wg set wg0 peer ' + peer.publicKey + ' remove')
+
+    // delete the peer from the database
+    await peer.remove()
+
+    return peer.publicKey
 }
 
 module.exports = {
     getStatus: getStatus,
     addPeer: addPeer,
-    blockPeer: blockPeer
+    blockPeer: blockPeer,
+    unblockPeer: unblockPeer,
+    removePeer: removePeer,
+    initialize: initialize
 }

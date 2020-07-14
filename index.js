@@ -3,12 +3,15 @@ const app = express()
 const graphQLHTTP = require('express-graphql').graphqlHTTP
 const graphQL = require('./graphql')
 const mongoose = require('mongoose')
+const wireguard = require('./wireguard')
 
 mongoose.connect('mongodb://localhost/lead-knight', { useNewUrlParser: true, useUnifiedTopology: true })
     .then(console.log('Database connected'))
 
-app.listen(8081)
+wireguard.initialize()
+console.log('WireGuard initialized')
 
+app.listen(8081)
 console.log('Server running')
 
 app.use('/', graphQLHTTP({

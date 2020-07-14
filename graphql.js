@@ -60,6 +60,22 @@ const RootMutationType = new GraphQLObjectType({
                 publicKey: { type: GraphQLNonNull(GraphQLString) }
             },
             resolve: (parent, args) => wireguard.blockPeer(args.publicKey)
+        },
+        unblockPeer: {
+            type: GraphQLString,
+            description: 'Unblock a peer from connecting',
+            args: {
+                publicKey: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => wireguard.unblockPeer(args.publicKey)
+        },
+        removePeer: {
+            type: GraphQLString,
+            description: 'Remove a peer the server',
+            args: {
+                publicKey: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => wireguard.removePeer(args.publicKey)
         }
     })
 })
