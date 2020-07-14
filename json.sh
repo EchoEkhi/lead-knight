@@ -22,7 +22,7 @@ while read -r -d $'\t' device; do
 		{ printf '%s\t\t"latestHandshake": %u' "$delim" $(( $latest_handshake )); delim=$',\n'; }
 		{ printf '%s\t\t"upload": %u' "$delim" $(( $transfer_rx )); delim=$',\n'; }
 		{ printf '%s\t\t"download": %u' "$delim" $(( $transfer_tx )); delim=$',\n'; }
-		printf '%s\t\t"allowedIPs": [' "$delim"
+		printf '%s\t\t"allowedIP": ' "$delim"
 		delim=$'\n'
 		if [[ $allowed_ips != "(none)" ]]; then
 			old_ifs="$IFS"
@@ -35,7 +35,7 @@ while read -r -d $'\t' device; do
 			delim=$'\n'
 		fi
 		
-		printf '%s\t\t]' "$delim"
+		printf '%s\t\t' "$delim"
 		printf '\n\t}'
 		delim=$',\n'
 	fi
