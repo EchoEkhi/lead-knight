@@ -3,6 +3,8 @@
 # https://github.com/l-n-s/wireguard-install
 #
 # Copyright (c) 2018 Viktor Villainov. Released under the MIT License.
+# 
+# Modified by Shawn Xu to use with automated software in 2020.
 #
 # ./add.sh <$CLIENT_ADDRESS (allowedIP e.g.: 10.9.0.3>
 
