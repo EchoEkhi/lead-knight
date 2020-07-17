@@ -24,7 +24,11 @@ const peerSchema = new mongoose.Schema({
     },
     lastDownload: { type: String },
     dataLimit: { type: String },
-    timeUsed: { type: String },
+    timeUsed: {
+        type: String,
+        required: true,
+        default: '0'
+    },
     timeLimit: { type: String },
     allowedIP: { type: String },
     enabled: {
@@ -45,15 +49,13 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    enabled: {
-        type: Boolean,
-        required: true,
-        default: true
-    },
     upload: { type: String },
     download: { type: String },
     dataLimit: { type: String },
-    timeUsed: { type: String },
+    timeUsed: {
+        type: String,
+
+    },
     timeLimit: { type: String },
     peerLimit: { type: Number },
     createdOn: {

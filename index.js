@@ -30,3 +30,6 @@ app.use('/', graphQLHTTP({
     schema: graphQL.schema,
     graphiql: true
 }))
+
+// periodically check the WireGuard CLI for updates
+setInterval(wireguard.checkStatus, process.env.CHECK_STATUS_INTERVAL)

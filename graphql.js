@@ -9,8 +9,7 @@ const {
     GraphQLNonNull,
     GraphQLInt,
     GraphQLBoolean,
-    GraphQLScalarType,
-    isNonNullType
+    GraphQLInputObjectType
 } = require('graphql')
 
 
@@ -23,7 +22,7 @@ const PeerType = new GraphQLObjectType({
         latestHandshake: { type: GraphQLInt },
         upload: { type: GraphQLInt },
         download: { type: GraphQLInt },
-        allowedIP: { type: new GraphQLList(GraphQLString) }
+        allowedIP: { type: GraphQLString }
 
     })
 })
@@ -41,11 +40,46 @@ const UserType = new GraphQLObjectType({
     })
 })
 
-const peerFilter = {
-    publicKey: { type: GraphQLString },
-    user: { type: GraphQLString },
-    enabled: { type: GraphQLBoolean }
-}
+const PeerFilterType = new GraphQLInputObjectType({
+    name: 'PeerFilterType',
+    description: 'Input type for filtering peers for modification',
+    fields: () => ({
+        publicKey: { type: GraphQLString },
+        user: { type: GraphQLString },
+        enabled: { type: GraphQLBoolean }
+    })
+})
+
+const PeerMutationType = new GraphQLInputObjectType({
+    name: 'PeerMutationType',
+    description: 'Input type for modifying peers. Set attribute to null to remove the attribute',
+    fields: () => ({
+        user: { type: GraphQLString },
+        description: { type: GraphQLString },
+        enabled: { type: GraphQLBoolean },
+        dataLimit: { type: GraphQLString },
+        timeLimit: { type: GraphQLString }
+    })
+})
+
+const UserFilterType = new GraphQLInputObjectType({
+    name: 'UserFilterType',
+    description: 'Input type for filtering users for modification',
+    fields: () => ({
+        name: { type: GraphQLNonNull(GraphQLString) }
+    })
+})
+
+const UserMutationType = new GraphQLInputObjectType({
+    name: 'UserMutationType',
+    description: 'Input type for modifying users. Set attribute to null to remove the attribute',
+    fields: () => ({
+        peerLimit: { type: GraphQLInt },
+        dataLimit: { type: GraphQLString },
+        timeLimit: { type: GraphQLString }
+    })
+})
+
 
 const RootQueryType = new GraphQLObjectType({
     name: 'Query',
@@ -54,20 +88,18 @@ const RootQueryType = new GraphQLObjectType({
         peers: {
             type: GraphQLList(PeerType),
             description: 'A list of filterable peers',
-            args: peerFilter,
-            resolve: async(parent, args) => await Peer.find(args).exec()
-        },
-        getStatus: {
-            type: GraphQLString,
-            resolve: () => wireguard.checkStatus()
+            args: {
+                filter: { type: PeerFilterType }
+            },
+            resolve: async(parent, args) => await Peer.find(args.filter).exec()
         },
         users: {
             type: GraphQLList(UserType),
             description: 'A list of filterabe users',
             args: {
-                name: { type: GraphQLString }
+                filter: { type: UserFilterType }
             },
-            resolve: async(parent, args) => await User.find(args).exec()
+            resolve: async(parent, args) => await User.find(args.filter).exec()
         }
     })
 })
@@ -77,42 +109,51 @@ const RootMutationType = new GraphQLObjectType({
     description: 'Root mutation',
     fields: () => ({
         addPeer: {
-            type: GraphQLString,
+            type: PeerType,
             description: 'Add a peer',
+            args: { data: { type: PeerMutationType } },
+            resolve: (parent, args) => wireguard.addPeer(args.data)
+        },
+        updatePeers: {
+            type: GraphQLList(PeerType),
+            description: 'Update a peer\'s attributes',
             args: {
-                user: { type: GraphQLString },
-                description: { type: GraphQLString }
+                filter: { type: PeerFilterType },
+                data: { type: PeerMutationType }
             },
-            resolve: (parent, args) => wireguard.addPeer(args)
+            resolve: (parent, args) => wireguard.updatePeers(args.filter, args.data)
         },
-        blockPeer: {
-            type: GraphQLList(GraphQLString),
-            description: 'Block a peer from connecting',
-            args: peerFilter,
-            resolve: (parent, args) => wireguard.blockPeer(args)
-        },
-        unblockPeer: {
-            type: GraphQLList(GraphQLString),
-            description: 'Unblock a peer from connecting',
-            args: peerFilter,
-            resolve: (parent, args) => wireguard.unblockPeer(args)
-        },
-        removePeer: {
-            type: GraphQLList(GraphQLString),
-            description: 'Remove a peer the server',
-            args: peerFilter,
-            resolve: (parent, args) => wireguard.removePeer(args)
+        removePeers: {
+            type: GraphQLList(PeerType),
+            description: 'Remove filterable peers the server',
+            args: {
+                filter: { type: PeerFilterType }
+            },
+            resolve: (parent, args) => wireguard.removePeers(args.filter)
         },
         addUser: {
-            type: GraphQLString,
+            type: UserType,
             description: 'Add a user',
             args: {
                 name: { type: GraphQLNonNull(GraphQLString) },
-                peerLimit: { type: GraphQLInt },
-                dataLimit: { type: GraphQLString },
-                timeLimit: { type: GraphQLString }
+                data: { type: UserMutationType }
             },
-            resolve: (parent, args) => wireguard.addUser(args)
+            resolve: (parent, args) => wireguard.addUser(args.name, args.data)
+        },
+        updateUsers: {
+            type: GraphQLList(UserType),
+            description: 'Update users\' attributes',
+            args: {
+                filter: { type: UserFilterType },
+                data: { type: UserMutationType }
+            },
+            resolve: (parent, args) => wireguard.updateUsers(args.filter, args.data)
+        },
+        removeUsers: {
+            type: GraphQLList(UserType),
+            description: 'Remove users',
+            args: { filter: { type: UserFilterType } },
+            resolve: (parent, args) => wireguard.removeUsers(args.filter)
         }
     })
 })
