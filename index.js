@@ -5,6 +5,7 @@ const graphQLHTTP = require('express-graphql').graphqlHTTP
 const graphQL = require('./graphql')
 const mongoose = require('mongoose')
 const wireguard = require('./wireguard')
+const ipWhitelist = require('ip-whitelist')
 
 mongoose.connect(process.env.DB_CONNECTION_STRING, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(console.log('Database connected'))
@@ -24,6 +25,9 @@ wireguard.initialize()
 // start the server
 app.listen(process.env.PORT)
 console.log('Server running')
+
+// set up IP whitelisting for basic access control
+app.use(ipWhitelist(ipWhitelist.array(process.env.WHITELISTED_IPS)))
 
 // setup GraphQL route
 app.use('/', graphQLHTTP({
