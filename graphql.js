@@ -88,7 +88,6 @@ const UserMutationType = new GraphQLInputObjectType({
     })
 })
 
-
 const RootQueryType = new GraphQLObjectType({
     name: 'Query',
     description: 'Root Query',
@@ -103,7 +102,7 @@ const RootQueryType = new GraphQLObjectType({
         },
         users: {
             type: GraphQLList(UserType),
-            description: 'A list of filterabe users',
+            description: 'A list of filterable users',
             args: {
                 filter: { type: UserFilterType }
             },

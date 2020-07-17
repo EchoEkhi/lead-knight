@@ -10,11 +10,11 @@ async function initialize() {
     // load peers in the database into CLI (if it is enabled)
     return Peer.find({ enabled: true })
         .then(peers => {
-            for (i in peers) {
-                execSync('wg set wg0 peer ' + peers[i].publicKey + ' allowed-ips ' + peers[i].allowedIP + '/32')
-            }
-        })
+            peers.forEach(peer => {
+                execSync('wg set wg0 peer ' + peer.publicKey + ' allowed-ips ' + peer.allowedIP + '/32')
+            })
 
+        })
 }
 
 // add a peer in WireGuard CLI and updates the database
@@ -162,7 +162,7 @@ async function removePeers(filter) {
         return []
     }
 
-    // remove each of the peer from the database
+    // remove each of the peer from the database and the CLI
     peers.forEach(peer => {
         execSync('wg set wg0 peer ' + peer.publicKey + ' remove')
         peer.remove()
@@ -272,38 +272,10 @@ async function checkStatus() {
     // get all active peers from CLI
     let peers = JSON.parse(execSync('bash ./json.sh').toString()).peers
 
-    /*
-    peers = [{
-            publicKey: 'TMJiEy7apxmFmW85X4OdDPWVlLmVlHLE9ncuwFFD6Q0=',
-            endpoint: '(none)',
-            latestHandshake: 1,
-            upload: 2,
-            download: 434,
-            allowedIP: '10.9.0.10/32'
-        },
-        {
-            publicKey: 'k6797pLTAoGaFDjZUNgm7chE/T43sdgIDmQJ4/O6BHg=',
-            endpoint: '(none)',
-            latestHandshake: 0,
-            upload: 0,
-            download: 0,
-            allowedIP: '10.9.0.11/32'
-        },
-        {
-            publicKey: 'eL3dKZHg6I/qWOK7TRjKpTFZzs0ApvoB+w6aNffIKEg=',
-            endpoint: '(none)',
-            latestHandshake: 0,
-            upload: 0,
-            download: 477777,
-            allowedIP: '10.9.0.12/32'
-        }
-    ]
-    */
-
     // loop through each peer
     for (i in peers) {
         // locate peer in the database
-        peer = await Peer.findOne({ publicKey: peers[i].publicKey })
+        let peer = await Peer.findOne({ publicKey: peers[i].publicKey })
 
         // check upload and download
 
@@ -373,7 +345,7 @@ async function checkStatus() {
             // loop through each user
             for (i in users) {
                 // get all peers belonged to the user
-                userPeers = await Peer.find({ user: users[i].name }).exec()
+                let userPeers = await Peer.find({ user: users[i].name }).exec()
 
                 // get the users total usage data from peers database and write to user database
                 // try catch in case the user does not have any peers (array.reduce function would fail)
@@ -418,21 +390,39 @@ async function checkStatus() {
 
 // send a message back to the main site to inform it of changes (quota exceeded, etc)
 function sendMessage(message) {
-    const http = require('http')
+    if (process.env.MAIN_SITE_USE_HTTPS) {
+        const https = require('https')
 
-    const req = http.request({
-        hostname: process.env.MAIN_SITE_DOMAIN,
-        port: process.env.MAIN_SITE_PORT,
-        path: process.env.MAIN_SITE_ROUTE,
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': data.length
-        }
-    })
+        const req = https.request({
+            hostname: process.env.MAIN_SITE_DOMAIN,
+            port: process.env.MAIN_SITE_PORT,
+            path: process.env.MAIN_SITE_ROUTE,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': data.length
+            }
+        })
 
-    req.write(message)
-    req.end()
+        req.write(message)
+        req.end()
+    } else {
+        const http = require('http')
+
+        const req = http.request({
+            hostname: process.env.MAIN_SITE_DOMAIN,
+            port: process.env.MAIN_SITE_PORT,
+            path: process.env.MAIN_SITE_ROUTE,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': data.length
+            }
+        })
+
+        req.write(message)
+        req.end()
+    }
 }
 
 // removes peers in WireGuard CLI and updates the database
@@ -478,14 +468,17 @@ async function unblockPeers(args) {
 }
 
 module.exports = {
+    // meta functions
+    initialize: initialize,
     checkStatus: checkStatus,
+    // peer operations
     addPeer: addPeer,
     updatePeers: updatePeers,
     clearPeers: clearPeers,
     removePeers: removePeers,
+    // user operations
     addUser: addUser,
     updateUsers: updateUsers,
     clearUsers: clearUsers,
     removeUsers: removeUsers,
-    initialize: initialize
 }
