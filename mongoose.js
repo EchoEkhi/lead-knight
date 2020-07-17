@@ -64,8 +64,8 @@ const userSchema = new mongoose.Schema({
     }
 })
 
-Peer = mongoose.model('peers', peerSchema)
-User = mongoose.model('users', userSchema)
+const Peer = mongoose.model('peers', peerSchema)
+const User = mongoose.model('users', userSchema)
 
 module.exports = {
     Peer: Peer,
