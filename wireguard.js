@@ -50,6 +50,17 @@ async function addPeer(data) {
         return intToIP(0)
     }
 
+    // check if the user has reached their peer limit
+    // check if the new peer has a user attribute
+    if (data.user) {
+        let user = await User.findOne({ name: data.user }).exec()
+
+        // check if the user has reached their peer limit
+        if (await Peer.countDocuments({ user: user.name }) >= user.peerLimit) {
+            return
+        }
+    }
+
     // add a peer in CLI and save to database
     let peer = new Peer(JSON.parse(execSync('bash ./add.sh ' + await getAllowedIP()).toString()))
 
@@ -76,9 +87,10 @@ async function addPeer(data) {
 
 }
 
+// updates a peer's attributes
 async function updatePeers(filter, data) {
     // look up the peer in the database
-    peers = await Peer.find(filter).exec()
+    let peers = await Peer.find(filter).exec()
 
     // check if the peers exist
     if (!peers.length) {
@@ -114,10 +126,36 @@ async function updatePeers(filter, data) {
     return peers
 }
 
+// clears a peer's usage attributes
+async function clearPeers(filter) {
+    // look up the peer in the database
+    let peers = await Peer.find(filter).exec()
+
+    // check if the peers exist
+    if (!peers.length) {
+        return []
+    }
+
+    peers.forEach(peer => {
+        // reset the peer's usage attributes
+        peer.upload = '0'
+        peer.download = '0'
+        peer.timeUsed = '0'
+
+        // reenable the peer
+        unblockPeers({ publicKey: peer.publicKey })
+
+        // write changes to database
+        peer.save()
+    })
+
+    return peers
+}
+
 // removes peers in WireGuard CLI and the database 
 async function removePeers(filter) {
     // look up peers in database
-    peers = await Peer.find(filter).exec()
+    let peers = await Peer.find(filter).exec()
 
     // check if the peers exist
     if (!peers.length) {
@@ -152,10 +190,10 @@ async function addUser(name, data) {
     return user
 }
 
-// update a user's attributes
+// update users' attributes
 async function updateUsers(filter, data) {
     // look up users in database
-    users = await User.find(filter).exec()
+    let users = await User.find(filter).exec()
 
     // check if users exist
     if (!users.length) {
@@ -181,10 +219,36 @@ async function updateUsers(filter, data) {
     return users
 }
 
+// clear user's attributes
+async function clearUsers(filter) {
+    // look up users in database
+    let users = await User.find(filter).exec()
+
+    // check if users exist
+    if (!users.length) {
+        return
+    }
+
+    users.forEach(user => {
+        // reset the user's peers attributes and unblock them
+        clearPeers({ user: user.name })
+
+        // reset the user's usage attributes (just in case, can't hurt)
+        user.upload = '0'
+        user.download = '0'
+        user.timeUsed = '0'
+
+        // write changes to database
+        user.save()
+    })
+
+    return users
+}
+
 // remove a user from the database
 async function removeUsers(filter) {
     // look up users in database
-    users = await User.find(filter).exec()
+    let users = await User.find(filter).exec()
 
     // check if users exist
     if (!users.length) {
@@ -206,7 +270,7 @@ async function removeUsers(filter) {
 async function checkStatus() {
     // check individual peers
     // get all active peers from CLI
-    peers = JSON.parse(execSync('bash ./json.sh').toString()).peers
+    let peers = JSON.parse(execSync('bash ./json.sh').toString()).peers
 
     /*
     peers = [{
@@ -374,7 +438,7 @@ function sendMessage(message) {
 // removes peers in WireGuard CLI and updates the database
 async function blockPeers(args) {
     // look up the peer in database
-    peers = await Peer.find(args).exec()
+    let peers = await Peer.find(args).exec()
 
     // check if the peers exist
     if (!peers.length) {
@@ -395,7 +459,7 @@ async function blockPeers(args) {
 // restores peers in the WireGuard CLI and updates the database
 async function unblockPeers(args) {
     // look up the peer in database
-    peers = await Peer.find(args).exec()
+    let peers = await Peer.find(args).exec()
 
     // check if the peers exist
     if (!peers.length) {
@@ -417,9 +481,11 @@ module.exports = {
     checkStatus: checkStatus,
     addPeer: addPeer,
     updatePeers: updatePeers,
+    clearPeers: clearPeers,
     removePeers: removePeers,
     addUser: addUser,
     updateUsers: updateUsers,
+    clearUsers: clearUsers,
     removeUsers: removeUsers,
     initialize: initialize
 }

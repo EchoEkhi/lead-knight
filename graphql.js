@@ -18,12 +18,19 @@ const PeerType = new GraphQLObjectType({
     description: 'This is a WireGuard peer',
     fields: () => ({
         publicKey: { type: GraphQLNonNull(GraphQLString) },
+        privateKey: { type: GraphQLString },
+        allowedIP: { type: GraphQLString },
         endpoint: { type: GraphQLString },
         latestHandshake: { type: GraphQLInt },
+        enabled: { type: GraphQLBoolean },
         upload: { type: GraphQLInt },
         download: { type: GraphQLInt },
-        allowedIP: { type: GraphQLString }
-
+        timeUsed: { type: GraphQLString },
+        dataLimit: { type: GraphQLString },
+        timeLimit: { type: GraphQLString },
+        user: { type: GraphQLString },
+        description: { type: GraphQLString },
+        createdOn: { type: GraphQLString }
     })
 })
 
@@ -34,9 +41,10 @@ const UserType = new GraphQLObjectType({
         name: { type: GraphQLNonNull(GraphQLString) },
         upload: { type: GraphQLString },
         download: { type: GraphQLString },
-        dataLimit: { type: GraphQLString },
         timeUsed: { type: GraphQLString },
-        timeLimit: { type: GraphQLString }
+        dataLimit: { type: GraphQLString },
+        timeLimit: { type: GraphQLString },
+        peerLimit: { type: GraphQLInt }
     })
 })
 
@@ -123,6 +131,14 @@ const RootMutationType = new GraphQLObjectType({
             },
             resolve: (parent, args) => wireguard.updatePeers(args.filter, args.data)
         },
+        clearPeers: {
+            type: GraphQLList(PeerType),
+            description: 'Clear a peer\'s usage attributes (e.g. upload, download, timeUsed) and reenables the peer',
+            args: {
+                filter: { type: PeerFilterType }
+            },
+            resolve: (parent, args) => wireguard.clearPeers(args.filter, args.data)
+        },
         removePeers: {
             type: GraphQLList(PeerType),
             description: 'Remove filterable peers the server',
@@ -148,6 +164,14 @@ const RootMutationType = new GraphQLObjectType({
                 data: { type: UserMutationType }
             },
             resolve: (parent, args) => wireguard.updateUsers(args.filter, args.data)
+        },
+        clearUsers: {
+            type: GraphQLList(UserType),
+            description: 'Clear users\' usage attributes and reenables their peers',
+            args: {
+                filter: { type: UserFilterType }
+            },
+            resolve: (parent, args) => wireguard.clearUsers(args.filter)
         },
         removeUsers: {
             type: GraphQLList(UserType),

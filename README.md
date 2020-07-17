@@ -51,7 +51,7 @@ For a complete list of functions, enable GraphiQL and read the documentation. A 
 
 #### Manage Peers
 
-Each `peer`, aside from its necessary attributes (`publicKey`, `allowedIP`, etc.), also has usage information in it, e.g. `upload`, `download`, `timeUsed`. This value is checked periodically (defined in `.env` file) by the API by sending commands to WG CLI. Usage information will survive reloads. It can be cleared using the `clear` mutation.
+Each `peer`, aside from its necessary attributes (`publicKey`, `allowedIP`, etc.), also has usage information in it, e.g. `upload`, `download`, `timeUsed`. This value is checked periodically (defined in `.env` file) by the API by sending commands to WG CLI. Usage information will survive reloads. It can be cleared using the `clearPeers` mutation.
 
 Peers can be **enabled and disabled** by setting its `enabled` attribute. Disabling a peer will remove the peer from the WG CLI and enabling it will add it back. Upon API reload, all enabled peers will be loaded into WG CLI.
 
@@ -61,9 +61,9 @@ Each peer can also be assigned to a `user`, it and can have a `description` stri
 
 #### Manage Users
 
-Users are used to track ownership of peers. It has many of the functions of the `peer` object (refer to documantation in GraphiQL), with an additional `peerLimit` to limit how many peers it can own.
+Users are used to track ownership of peers. It has many of the functionalities of the `peer` object (refer to documantation in GraphiQL), with an additional `peerLimit` to limit how many peers it can own.
 
-Users also have `upload`, `download` and `timeUsed`, which is calculated by the sum of all peers belonging to them.
+Users also have `upload`, `download` and `timeUsed`, which is calculated by the sum of all peers belonging to them. `clearUsers` can be used to clear all of the user's peers' usage information.
 
 Users have `dataLimit` and `timeLimit` as well, and that is checked against the user's own `upload`, `download` and `timeUsed`. When a limit is reached, **all** of the user's peers will be disabled. An optional message can be sent back to the main controller site (defined in `.env` file).
 
