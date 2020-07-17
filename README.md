@@ -1,6 +1,12 @@
 # LeadKnight
 
-LeadKnight is a WireGuard GraphQL API written in NodeJS express. It allows you to interact with the WireGuard endpoint with GraphQL queries.
+LeadKnight is a WireGuard GraphQL API written in NodeJS express. It allows you to interact with the WireGuard endpoint with GraphQL queries. 
+
+Leadknight can keep track of peer and user usage data (upload, download, time used) across power cycles by using MongoDB.
+
+You can set limits (time, data) to peers, assign them to users, and limit the users.
+
+LeadKnight will automatically disable the peers once they exceed the limits, and will disable users if they exceed their limits.
 
 ## Deploy
 
@@ -45,21 +51,21 @@ For a complete list of functions, enable GraphiQL and read the documentation. A 
 
 #### Manage Peers
 
-Each `peer`, aside from its necessary attributes (`publicKey`, `allowedIP`, etc.), also has usage information in it, e.g. `upload`, `download`, `timeUsed`. This value is checked periodically (defined in `.env` file) by the API by sending commands to WG CLI. Usage information will survive reloads. It can be cleared by the `clear` mutation.
+Each `peer`, aside from its necessary attributes (`publicKey`, `allowedIP`, etc.), also has usage information in it, e.g. `upload`, `download`, `timeUsed`. This value is checked periodically (defined in `.env` file) by the API by sending commands to WG CLI. Usage information will survive reloads. It can be cleared using the `clear` mutation.
 
-`peer`s can be **enabled and disabled** by setting its `enabled` attribute. Disabling a peer will remove the peer from the WG CLI and enabling it will add it back. Upon API reload, all enabled peers will be loaded into WG CLI.
+Peers can be **enabled and disabled** by setting its `enabled` attribute. Disabling a peer will remove the peer from the WG CLI and enabling it will add it back. Upon API reload, all enabled peers will be loaded into WG CLI.
 
-`peer`s can also have built-in limits, e.g. `dataLimit` and `timeLimit`. The API will automatically disable the peer once the limit is reached. An optional message can be sent back to the main controller site (defined in `.env` file) when the peer is disabled.
+Peers can also have built-in limits, e.g. `dataLimit` and `timeLimit`. The API will automatically disable the peer once the limit is reached. An optional message can be sent back to the main controller site (defined in `.env` file) when the peer is disabled.
 
-Each `peer` can also be assigned to a `user`, it and can have a `description` string to indicate its purpose.
+Each peer can also be assigned to a `user`, it and can have a `description` string to indicate its purpose.
 
 #### Manage Users
 
-`user`s are used to track ownership of `peer`s. It has many of the functions of the `peer` object (refer to documantation in GraphiQL), with an additional `peerLimit` to limit how many peers it can own.
+Users are used to track ownership of peers. It has many of the functions of the `peer` object (refer to documantation in GraphiQL), with an additional `peerLimit` to limit how many peers it can own.
 
-`user`s also have `upload`, `download` and `timeUsed`, which is calculated by the sum of all peers belonging to them.
+Users also have `upload`, `download` and `timeUsed`, which is calculated by the sum of all peers belonging to them.
 
-`user`s have `dataLimit` and `timeLimit` as well, and that is checked against the `user`'s own `upload`, `download` and `timeUsed`. When a limit is reached, **all** of the `user`'s peers will be disabled. An optional message can be sent back to the main controller site (defined in `.env` file).
+Users have `dataLimit` and `timeLimit` as well, and that is checked against the user's own `upload`, `download` and `timeUsed`. When a limit is reached, **all** of the user's peers will be disabled. An optional message can be sent back to the main controller site (defined in `.env` file).
 
 ### Context
 
