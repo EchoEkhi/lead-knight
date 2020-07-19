@@ -29,6 +29,7 @@ const PeerType = new GraphQLObjectType({
         dataLimit: { type: GraphQLString },
         timeLimit: { type: GraphQLString },
         user: { type: GraphQLString },
+        device: { type: GraphQLString },
         description: { type: GraphQLString },
         createdOn: { type: GraphQLString }
     })

@@ -20,7 +20,7 @@ LeadKnight will automatically disable the peers once they exceed the limits, and
 
 0. Set up a MongoDB database to be used with the API.
 
-0. Edit the .env file to configure it for your own server. A `.env-example` file is provided.
+0. Add and edit the .env file to configure it for your own server. A `.env-example` file is provided.
 
 0. Install WireGuard on your machine. Format the wg0.conf file as shown in `wg-example.conf` file.
 
