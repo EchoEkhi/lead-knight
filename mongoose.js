@@ -37,7 +37,7 @@ const peerSchema = new mongoose.Schema({
         default: true
     },
     user: { type: String },
-    device: { type String },
+    device: { type: String },
     description: { type: String },
     createdOn: {
         type: Date,
