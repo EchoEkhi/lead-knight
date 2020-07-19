@@ -64,6 +64,7 @@ const PeerMutationType = new GraphQLInputObjectType({
     description: 'Input type for modifying peers. Set attribute to null to remove the attribute',
     fields: () => ({
         user: { type: GraphQLString },
+        device: { type: GraphQLString },
         description: { type: GraphQLString },
         enabled: { type: GraphQLBoolean },
         dataLimit: { type: GraphQLString },
