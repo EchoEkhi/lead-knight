@@ -12,7 +12,7 @@ const {
     GraphQLInputObjectType
 } = require('graphql')
 
-
+// basic object types
 const PeerType = new GraphQLObjectType({
     name: 'Peer',
     description: 'This is a WireGuard peer',
@@ -23,8 +23,8 @@ const PeerType = new GraphQLObjectType({
         endpoint: { type: GraphQLString },
         latestHandshake: { type: GraphQLInt },
         enabled: { type: GraphQLBoolean },
-        upload: { type: GraphQLInt },
-        download: { type: GraphQLInt },
+        upload: { type: GraphQLString },
+        download: { type: GraphQLString },
         timeUsed: { type: GraphQLString },
         dataLimit: { type: GraphQLString },
         timeLimit: { type: GraphQLString },
@@ -49,6 +49,7 @@ const UserType = new GraphQLObjectType({
     })
 })
 
+// basic input types
 const PeerFilterType = new GraphQLInputObjectType({
     name: 'PeerFilterType',
     description: 'Input type for filtering peers for modification',
@@ -59,12 +60,23 @@ const PeerFilterType = new GraphQLInputObjectType({
     })
 })
 
+const PeerCreationType = new GraphQLInputObjectType({
+    name: 'PeerCreationType',
+    description: 'Input type for creating peers',
+    fields: () => ({
+        user: { type: GraphQLString },
+        device: { type: GraphQLString },
+        description: { type: GraphQLString },
+        enabled: { type: GraphQLBoolean },
+        dataLimit: { type: GraphQLString },
+        timeLimit: { type: GraphQLString }
+    })
+})
+
 const PeerMutationType = new GraphQLInputObjectType({
     name: 'PeerMutationType',
     description: 'Input type for modifying peers. Set attribute to null to remove the attribute',
     fields: () => ({
-        user: { type: GraphQLString },
-        device: { type: GraphQLString },
         description: { type: GraphQLString },
         enabled: { type: GraphQLBoolean },
         dataLimit: { type: GraphQLString },
@@ -80,6 +92,17 @@ const UserFilterType = new GraphQLInputObjectType({
     })
 })
 
+const UserCreationType = new GraphQLInputObjectType({
+    name: 'UserCreationType',
+    description: 'Input type for creating users',
+    fields: () => ({
+        name: { type: GraphQLNonNull(GraphQLString) },
+        peerLimit: { type: GraphQLInt },
+        dataLimit: { type: GraphQLString },
+        timeLimit: { type: GraphQLString }
+    })
+})
+
 const UserMutationType = new GraphQLInputObjectType({
     name: 'UserMutationType',
     description: 'Input type for modifying users. Set attribute to null to remove the attribute',
@@ -90,6 +113,7 @@ const UserMutationType = new GraphQLInputObjectType({
     })
 })
 
+// query and mutation types to be used in schemas
 const RootQueryType = new GraphQLObjectType({
     name: 'Query',
     description: 'Root Query',
@@ -120,7 +144,7 @@ const RootMutationType = new GraphQLObjectType({
         addPeer: {
             type: PeerType,
             description: 'Add a peer',
-            args: { data: { type: PeerMutationType } },
+            args: { data: { type: PeerCreationType } },
             resolve: (parent, args) => wireguard.addPeer(args.data)
         },
         updatePeers: {
@@ -152,10 +176,9 @@ const RootMutationType = new GraphQLObjectType({
             type: UserType,
             description: 'Add a user',
             args: {
-                name: { type: GraphQLNonNull(GraphQLString) },
-                data: { type: UserMutationType }
+                data: { type: UserCreationType }
             },
-            resolve: (parent, args) => wireguard.addUser(args.name, args.data)
+            resolve: (parent, args) => wireguard.addUser(args.data)
         },
         updateUsers: {
             type: GraphQLList(UserType),
@@ -183,6 +206,7 @@ const RootMutationType = new GraphQLObjectType({
     })
 })
 
+// schema to be used in routes
 const schema = new GraphQLSchema({
     query: RootQueryType,
     mutation: RootMutationType

@@ -172,17 +172,14 @@ async function removePeers(filter) {
 }
 
 // add a user to the database
-async function addUser(name, data) {
+async function addUser(data) {
     // check if the database already have a overlapping username
-    if (await User.findOne({ name: name })) {
+    if (await User.findOne({ name: data.name })) {
         return
     }
 
     // create new user object
-    let user = new User({
-        name: name,
-        ...data
-    })
+    let user = new User(data)
 
     // save new user to database
     user.save()
