@@ -21,7 +21,7 @@ const PeerType = new GraphQLObjectType({
         privateKey: { type: GraphQLString },
         allowedIP: { type: GraphQLString },
         endpoint: { type: GraphQLString },
-        latestHandshake: { type: GraphQLInt },
+        latestHandshake: { type: GraphQLString },
         enabled: { type: GraphQLBoolean },
         upload: { type: GraphQLString },
         download: { type: GraphQLString },
@@ -56,7 +56,8 @@ const PeerFilterType = new GraphQLInputObjectType({
     fields: () => ({
         publicKey: { type: GraphQLString },
         user: { type: GraphQLString },
-        enabled: { type: GraphQLBoolean }
+        enabled: { type: GraphQLBoolean },
+        device: { type: GraphQLString }
     })
 })
 

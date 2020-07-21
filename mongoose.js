@@ -10,7 +10,11 @@ const peerSchema = new mongoose.Schema({
         required: true
     },
     endpoint: { type: String },
-    latestHandshake: { type: String },
+    latestHandshake: {
+        type: String,
+        required: true,
+        default: '0'
+    },
     upload: {
         type: String,
         required: true,

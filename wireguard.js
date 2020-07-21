@@ -55,9 +55,12 @@ async function addPeer(data) {
     if (data.user) {
         let user = await User.findOne({ name: data.user }).exec()
 
-        // check if the user has reached their peer limit
-        if (await Peer.countDocuments({ user: user.name }) >= user.peerLimit) {
-            return
+        // check if the user is in the database
+        if (user) {
+            // check if the user has reached their peer limit
+            if (await Peer.countDocuments({ user: user.name }) >= user.peerLimit) {
+                return
+            }
         }
     }
 
@@ -69,6 +72,7 @@ async function addPeer(data) {
 
     // assign other optional attributes
     peer.user = data.user
+    peer.device = data.device
     peer.description = data.description
     peer.dataLimit = data.dataLimit
     peer.timeLimit = data.timeLimit
@@ -313,7 +317,7 @@ async function checkStatus() {
         if (peers[i].latestHandshake != peer.latestHandshake && peers[i].latestHandshake != '0') {
             // the peer has conducted a handshake
 
-            peer.timeUsed = parseInt(peer.timeUsed) + 120000 // 2 minutes in ms
+            peer.timeUsed = parseInt(peer.timeUsed) + 120 // 2 minutes in seconds
 
             // save marker into database
             peer.latestHandshake = peers[i].latestHandshake
