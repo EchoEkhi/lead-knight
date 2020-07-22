@@ -69,10 +69,20 @@ const userSchema = new mongoose.Schema({
     }
 })
 
+const serverSchema = new mongoose.Schema({
+    serverSettings: { type: Boolean },
+    publicKey: { type: String },
+    upload: { type: String },
+    download: { type: String },
+    timeUsed: { type: String }
+})
+
 const Peer = mongoose.model('peers', peerSchema)
 const User = mongoose.model('users', userSchema)
+const Server = mongoose.model('server', serverSchema, 'server')
 
 module.exports = {
     Peer: Peer,
-    User: User
+    User: User,
+    Server: Server
 }

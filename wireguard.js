@@ -1,6 +1,7 @@
 const execSync = require('child_process').execSync
 const Peer = require('./mongoose').Peer
 const User = require('./mongoose').User
+const Server = require('./mongoose').Server
 
 // initialize the WireGuard CLI according to the database
 async function initialize() {
@@ -273,6 +274,14 @@ async function checkStatus() {
     // get all active peers from CLI
     let peers = JSON.parse(execSync('bash ./json.sh').toString()).peers
 
+    // fetch the server object from database
+    let server = await Server.findOne({ serverSettings: true }).exec()
+
+    // reset server statistics.
+    server.upload = '0'
+    server.download = '0'
+    server.timeUsed = '0'
+
     // loop through each peer
     for (i in peers) {
         // locate peer in the database
@@ -338,7 +347,15 @@ async function checkStatus() {
 
         // save peer information into database
         peer.save()
+
+        // add peer information into server total
+        server.upload = (parseInt(server.upload) + parseInt(peer.upload)).toString()
+        server.download = (parseInt(server.download) + parseInt(peer.download)).toString()
+        server.timeUsed = (parseInt(server.timeUsed) + parseInt(peer.timeUsed)).toString()
     }
+
+    // save server statistics
+    server.save()
 
     // check individual users
     User.find()
