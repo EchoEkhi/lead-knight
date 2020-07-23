@@ -2,6 +2,9 @@ const execSync = require('child_process').execSync
 const Peer = require('./mongoose').Peer
 const User = require('./mongoose').User
 const Server = require('./mongoose').Server
+const {
+    GraphQLError
+} = require('graphql')
 
 // initialize the WireGuard CLI according to the database
 async function initialize() {
@@ -14,7 +17,6 @@ async function initialize() {
             peers.forEach(peer => {
                 execSync('wg set wg0 peer ' + peer.publicKey + ' allowed-ips ' + peer.allowedIP + '/32')
             })
-
         })
 }
 
@@ -30,7 +32,7 @@ async function addPeer(data) {
             return process.env.LOCAL_IP_RANGE + Math.floor(count / 200).toString() + '.' + ((count % 200) + 10).toString()
         }
 
-        let documents = await Peer.find({}).exec()
+        let documents = await Peer.find().exec()
         let IPs = []
 
         // loop through all peers and extract allowedIP into IPs
@@ -47,20 +49,19 @@ async function addPeer(data) {
                 return intToIP(IPs[i] + 1)
             }
         }
-        // In case it's empty (undefined === undefined is true) return the next available IP, which is 0
+        // In case it's empty (undefined === undefined is true), return the next available IP, which is 0
         return intToIP(0)
     }
 
-    // check if the user has reached their peer limit
     // check if the new peer has a user attribute
     if (data.user) {
-        let user = await User.findOne({ name: data.user }).exec()
+        const user = await User.findOne({ name: data.user }).exec()
 
         // check if the user is in the database
         if (user) {
             // check if the user has reached their peer limit
             if (await Peer.countDocuments({ user: user.name }) >= user.peerLimit) {
-                return
+                throw new GraphQLError('User peer limit reached')
             }
         }
     }
@@ -180,7 +181,7 @@ async function removePeers(filter) {
 async function addUser(data) {
     // check if the database already have a overlapping username
     if (await User.findOne({ name: data.name })) {
-        return
+        throw new GraphQLError('User with the same name already exists.')
     }
 
     // create new user object
@@ -274,14 +275,6 @@ async function checkStatus() {
     // get all active peers from CLI
     let peers = JSON.parse(execSync('bash ./json.sh').toString()).peers
 
-    // fetch the server object from database
-    let server = await Server.findOne({ serverSettings: true }).exec()
-
-    // reset server statistics.
-    server.upload = '0'
-    server.download = '0'
-    server.timeUsed = '0'
-
     // loop through each peer
     for (i in peers) {
         // locate peer in the database
@@ -347,15 +340,7 @@ async function checkStatus() {
 
         // save peer information into database
         peer.save()
-
-        // add peer information into server total
-        server.upload = (parseInt(server.upload) + parseInt(peer.upload)).toString()
-        server.download = (parseInt(server.download) + parseInt(peer.download)).toString()
-        server.timeUsed = (parseInt(server.timeUsed) + parseInt(peer.timeUsed)).toString()
     }
-
-    // save server statistics
-    server.save()
 
     // check individual users
     User.find()
@@ -403,6 +388,32 @@ async function checkStatus() {
 
                 users[i].save()
             }
+        })
+
+    // check individual peers in database
+
+    // fetch the server object from database
+    Server.findOne({ serverSettings: true })
+        .then(server => {
+            // reset server statistics.
+            server.upload = '0'
+            server.download = '0'
+            server.timeUsed = '0'
+
+            // loop throuth each peer in database
+            Peer.find()
+                .then(dbPeers => {
+                    dbPeers.forEach(dbPeer => {
+                        // add peer information into server total
+                        server.upload = (parseInt(server.upload) + parseInt(dbPeer.upload)).toString()
+                        server.download = (parseInt(server.download) + parseInt(dbPeer.download)).toString()
+                        server.timeUsed = (parseInt(server.timeUsed) + parseInt(dbPeer.timeUsed)).toString()
+                    })
+                })
+                .then(() => {
+                    // save server statistics
+                    server.save()
+                })
         })
 }
 

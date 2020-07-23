@@ -1,6 +1,7 @@
 const wireguard = require('./wireguard')
 const Peer = require('./mongoose').Peer
 const User = require('./mongoose').User
+const Server = require('./mongoose').Server
 const {
     GraphQLSchema,
     GraphQLObjectType,
@@ -46,6 +47,17 @@ const UserType = new GraphQLObjectType({
         dataLimit: { type: GraphQLString },
         timeLimit: { type: GraphQLString },
         peerLimit: { type: GraphQLInt }
+    })
+})
+
+const ServerType = new GraphQLObjectType({
+    name: 'Server',
+    description: 'This is the server\'s statistics',
+    fields: () => ({
+        publicKey: { type: GraphQLString },
+        upload: { type: GraphQLString },
+        download: { type: GraphQLString },
+        timeUsed: { type: GraphQLString }
     })
 })
 
@@ -134,6 +146,11 @@ const RootQueryType = new GraphQLObjectType({
                 filter: { type: UserFilterType }
             },
             resolve: async(parent, args) => await User.find(args.filter).exec()
+        },
+        server: {
+            type: ServerType,
+            description: 'Server statistics',
+            resolve: async() => await Server.findOne({ serverSettings: true }).exec()
         }
     })
 })
