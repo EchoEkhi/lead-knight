@@ -69,6 +69,12 @@ const userSchema = new mongoose.Schema({
     }
 })
 
+userSchema.virtual('peers', {
+    ref: "peers",
+    localField: 'name',
+    foreignField: 'user'
+})
+
 const serverSchema = new mongoose.Schema({
     serverSettings: { type: Boolean },
     publicKey: { type: String },

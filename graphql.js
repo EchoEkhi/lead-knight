@@ -46,7 +46,8 @@ const UserType = new GraphQLObjectType({
         timeUsed: { type: GraphQLString },
         dataLimit: { type: GraphQLString },
         timeLimit: { type: GraphQLString },
-        peerLimit: { type: GraphQLInt }
+        peerLimit: { type: GraphQLInt },
+        peers: { type: GraphQLList(PeerType) }
     })
 })
 
@@ -145,7 +146,7 @@ const RootQueryType = new GraphQLObjectType({
             args: {
                 filter: { type: UserFilterType }
             },
-            resolve: async(parent, args) => await User.find(args.filter).exec()
+            resolve: async(parent, args) => await User.find(args.filter).populate('peers')
         },
         server: {
             type: ServerType,
