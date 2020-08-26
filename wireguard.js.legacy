@@ -1,0 +1,194 @@
+const { execSync } = require('child_process')
+const { Peer, User, Server } = require('./db/index')
+
+// read data from WireGuard CLI into the database (upload, download, time used, etc.)
+async function checkStatus() {
+
+    /*
+     * check individual peers
+     * get all active peers from CLI
+     */
+    const { peers } = JSON.parse(execSync('bash ./json.sh').toString())
+
+    // loop through each peer
+    for (const i in peers) {
+
+        // locate peer in the database
+        const peer = await Peer.findOne({ publicKey: peers[i].publicKey })
+
+        // check upload and download
+
+        // check if WG CLI has inreased
+        if (parseInt(peers[i].upload, 10) > parseInt(peer.lastUpload, 10) || parseInt(peers[i].download, 10) > parseInt(peer.lastDownload, 10)) {
+
+            /*
+             * the peer has used data
+             * log the amount into upload and download counter
+             */
+
+            peer.upload = parseInt(peer.upload, 10) + peers[i].upload - parseInt(peer.lastUpload, 10)
+            peer.download = parseInt(peer.download, 10) + peers[i].download - parseInt(peer.lastDownload, 10)
+
+            // check if the peer has exceeded the quota
+            if (parseInt(peer.upload, 10) + parseInt(peer.download, 10) > parseInt(peer.dataLimit, 10)) {
+
+                // the peer has exceeded the quota, block further connections
+                blockPeers({ publicKey: peer.publicKey })
+
+                // notify the main site of the action
+                sendMessage({
+                    type: 'disable',
+                    peer: peer.publicKey,
+                    reason: 'data'
+                })
+
+            }
+
+        }
+        // if the WG CLI has decreased, then assume it has been reset, add untracked data to database (WG CLI cannot decrease, because it can only be added by the user using the connection)
+        if (parseInt(peers[i].upload) < parseInt(peer.lastUpload) || parseInt(peers[i].download) < parseInt(peer.lastDownload)) {
+
+            peer.upload = parseInt(peer.upload) + peers[i].upload
+            peer.download = parseInt(peer.download) + peers[i].download
+
+        }
+
+        // save lastUpload and lastDownload marker into database
+        peer.lastUpload = peers[i].upload
+        peer.lastDownload = peers[i].download
+
+        // check time used
+
+        // check if the peer has conducted a handshake (the latestHandshake will increment to current date every 2 minutes whenever a connection is maintained, so it will deviate the record in the database)
+        if (peers[i].latestHandshake != peer.latestHandshake && peers[i].latestHandshake != '0') {
+
+            // the peer has conducted a handshake
+
+            peer.timeUsed = parseInt(peer.timeUsed) + 120 // 2 minutes in seconds
+
+            // save marker into database
+            peer.latestHandshake = peers[i].latestHandshake
+
+            // check if the peer has exceeded the quota
+            if (parseInt(peer.timeUsed) > parseInt(peer.timeLimit)) {
+
+                // the peer has exceeded the quota, block further connection
+                blockPeers({ publicKey: peer.publicKey })
+
+                // notify the main site of the action
+                sendMessage({
+                    type: 'disable',
+                    peer: peer.publicKey,
+                    reason: 'time'
+                })
+
+            }
+
+        }
+
+        // save peer information into database
+        peer.save()
+
+    }
+
+    // check individual users
+    User.find()
+        .then(async users => {
+
+            // loop through each user
+            for (const i in users) {
+
+                // get all peers belonged to the user
+                const userPeers = await Peer.find({ user: users[i].name }).exec()
+
+                /*
+                 * get the users total usage data from peers database and write to user database
+                 * try catch in case the user does not have any peers (array.reduce function would fail)
+                 */
+                try {
+
+                    users[i].upload = userPeers.map(x => parseInt(x.upload)).reduce((a, b) => a + b)
+                    users[i].download = userPeers.map(x => parseInt(x.download)).reduce((a, b) => a + b)
+                    users[i].timeUsed = userPeers.map(x => parseInt(x.timeUsed)).reduce((a, b) => a + b)
+
+                } catch (e) {
+
+                }
+
+                // check if the user has exceeded the data limit quota
+                if (parseInt(users[i].upload) + parseInt(users[i].download) > parseInt(users[i].dataLimit)) {
+
+                    // disable all of the user's peers
+                    blockPeers({ user: users[i].name })
+
+                    // notify the main site of the action
+                    sendMessage({
+                        type: 'disable',
+                        user: users[i].name,
+                        reason: 'data'
+                    })
+
+                }
+
+                // check if the user has exceeded the time limit quota
+                if (parseInt(users[i].timeUsed) > parseInt(users[i].timeLimit)) {
+
+                    // disable all of the user's peers
+                    blockPeers({ user: users[i].name })
+
+                    // notify the main site of the action
+                    sendMessage({
+                        type: 'disable',
+                        user: users[i].name,
+                        reason: 'time'
+                    })
+
+                }
+
+                users[i].save()
+
+            }
+
+        })
+
+    // check individual peers in database
+
+    // fetch the server object from database
+    Server.findOne({ serverSettings: true })
+        .then(server => {
+
+            // reset server statistics.
+            server.upload = '0'
+            server.download = '0'
+            server.timeUsed = '0'
+
+            // loop throuth each peer in database
+            Peer.find()
+                .then(dbPeers => {
+
+                    dbPeers.forEach(dbPeer => {
+
+                        // add peer information into server total
+                        server.upload = (parseInt(server.upload) + parseInt(dbPeer.upload)).toString()
+                        server.download = (parseInt(server.download) + parseInt(dbPeer.download)).toString()
+                        server.timeUsed = (parseInt(server.timeUsed) + parseInt(dbPeer.timeUsed)).toString()
+
+                    })
+
+                })
+                .then(() => {
+
+                    // save server statistics
+                    server.save()
+
+                })
+
+        })
+
+}
+
+
+module.exports = {
+    // meta functions
+    checkStatus
+}

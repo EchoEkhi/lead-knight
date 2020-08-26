@@ -23,5 +23,8 @@
     "graphql": "^15.3.0",
     "ip-whitelist": "^1.2.2",
     "mongoose": "^5.9.24"
+  },
+  "devDependencies": {
+    "eslint": "^7.7.0"
   }
 }
