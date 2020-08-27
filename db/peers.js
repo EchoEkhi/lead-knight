@@ -33,12 +33,17 @@ async function add(data) {
     // default enabled to true if it's not provided
     peer.enabled = data.enabled === undefined ? true : data.enabled
 
-    // assign other optional attributes
-    peer.user = data.user
-    peer.device = data.device
-    peer.description = data.description
-    peer.dataLimit = data.dataLimit
-    peer.timeLimit = data.timeLimit
+
+    if (data) {
+
+        // assign other optional attributes
+        peer.user = data.user
+        peer.device = data.device
+        peer.description = data.description
+        peer.dataLimit = data.dataLimit
+        peer.timeLimit = data.timeLimit
+
+    }
 
     // write to database
     peer = await peer.save()

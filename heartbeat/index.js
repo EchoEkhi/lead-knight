@@ -1,4 +1,4 @@
-const { Peer, User } = require('../db/index')
+const { Peer, User, Server } = require('../db/index')
 
 const wg = require('../wg/index')
 
@@ -6,7 +6,14 @@ async function heartbeat() {
 
     const wgPeers = await wg.read()
 
-    Peer.find({ enabled: true })
+    const server = await Server.findOne({ serverSettings: true })
+
+    // reset server statistics
+    server.upload = '0'
+    server.download = '0'
+    server.timeUsed = '0'
+
+    await Peer.find({ enabled: true })
         .then(dbPeers => dbPeers.forEach(dbPeer => {
 
             const wgPeer = wgPeers.find(peer => peer.publicKey === dbPeer.publicKey)
@@ -56,6 +63,9 @@ async function heartbeat() {
             // only set latestHandshake reference to wgLatestHandshake when not 0 to avoid losing record after reset
             if (wgPeer.latestHandshake !== 0) dbPeer.latestHandshake = wgPeer.latestHandshake.toString()
 
+            // log endpoint
+            if (wgPeer.endpoint !== '(none)') dbPeer.endpoint = wgPeer.endpoint
+
             // check limits
             if (dbPeer.dataLimit) {
 
@@ -79,11 +89,29 @@ async function heartbeat() {
 
             }
 
+            // accumulate server statistics
+            server.upload = (
+                parseInt(server.upload, 10) +
+                parseInt(dbPeer.upload, 10)
+            ).toString()
+
+            server.download = (
+                parseInt(server.download, 10) +
+                parseInt(dbPeer.download, 10)
+            ).toString()
+
+            server.timeUsed = (
+                parseInt(server.timeUsed, 10) +
+                parseInt(dbPeer.timeUsed, 10)
+            ).toString()
+
             dbPeer.save()
 
         }))
         // reinit the WG interface if out of sync
         .catch(() => wg.init())
+
+    server.save()
 
     User.find()
         .then(users => users.forEach(user => {
