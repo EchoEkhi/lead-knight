@@ -4,11 +4,9 @@ const wg = require('../wg/index')
 
 async function heartbeat() {
 
-    // todo: read peers into users
-
     const wgPeers = await wg.read()
 
-    Peer.find()
+    Peer.find({ enabled: true })
         .then(dbPeers => dbPeers.forEach(dbPeer => {
 
             const wgPeer = wgPeers.find(peer => peer.publicKey === dbPeer.publicKey)
