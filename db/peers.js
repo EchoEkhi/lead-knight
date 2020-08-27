@@ -78,6 +78,8 @@ async function update(filter, data) {
             if (data.enabled) wg.add(peer)
             else wg.remove(peer)
 
+            peer.enabled = data.enabled
+
         }
 
         // write changes to database
