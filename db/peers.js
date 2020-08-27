@@ -30,20 +30,17 @@ async function add(data) {
     // add a peer in CLI and save to database
     let peer = new Peer(await wg.create())
 
-    // default enabled to true if it's not provided
-    peer.enabled = data.enabled === undefined ? true : data.enabled
-
-
     if (data) {
 
         // assign other optional attributes
+        peer.enabled = data.enabled === undefined ? true : data.enabled
         peer.user = data.user
         peer.device = data.device
         peer.description = data.description
         peer.dataLimit = data.dataLimit
         peer.timeLimit = data.timeLimit
 
-    }
+    } else peer.enabled = true
 
     // write to database
     peer = await peer.save()
