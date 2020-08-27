@@ -9,7 +9,7 @@ const wg = require('../wg/index')
 async function add(data) {
 
     // check for the user's peerLimit
-    if (data.user) {
+    if (data) if (data.user) {
 
         const user = await User.findOne({ name: data.user })
 
