@@ -5,41 +5,64 @@ const { Peer } = require('../db/index')
 // function to generate a valid peer IP in sequence in the database
 async function getAllowedIP() {
 
-    function IPtoInt(IP) {
+    function incrementIp(input) {
 
-        return IP.split('.')[2] * 200 + (IP.split('.')[3] - 10)
+        const tokens = input.split('.')
 
-    }
+        if (tokens.length !== 4) throw new Error('Invalid IP address')
 
-    function intToIP(count) {
+        for (let i = tokens.length - 1; i >= 0; i--) {
 
-        return `${process.env.LOCAL_IP_RANGE + Math.floor(count / 200).toString()}.${(count % 200 + 10).toString()}`
+            const item = parseInt(tokens[i], 10)
 
-    }
+            if (item < 200) {
 
-    const peers = await Peer.find()
-    const IPs = []
+                tokens[i] = item + 1
+                for (let j = i + 1; j < 4; j++) {
 
-    // loop through all peers and extract allowedIP into IPs
-    peers.forEach(peer => IPs.push(IPtoInt(peer.allowedIP)))
+                    tokens[j] = '0'
 
-    // sort the IPs array
-    IPs.sort()
+                }
+                break
 
-    // check if there are any gaps in IP assignment
-    for (let i = 0; i < IPs.length; i++) {
-
-        // if so, return the gap IP. At the end of the array, it will compare to undefined, which will return true, and trigger it to return the next available IP.
-        if (IPs[i] + 1 !== IPs[i + 1]) {
-
-            return intToIP(IPs[i] + 1)
+            }
 
         }
 
+        return `${tokens[0]}.${tokens[1]}.${tokens[2]}.${tokens[3]}`
+
     }
 
-    // in case it's empty (undefined === undefined is true), return the next available IP, which is 0
-    return intToIP(0)
+
+    const peers = await Peer.find()
+
+    // loop through all peers and extract allowedIP into IPs
+
+    if (!peers.length) return process.env.INITIAL_IP
+
+    const ipsArray = []
+
+    for (const i in peers) {
+
+        const allowedIPStr = peers[i].allowedIP
+
+        ipsArray.push(allowedIPStr)
+
+    }
+
+    ipsArray.sort((a, b) => {
+
+        const num1 = Number(a.split('.').map((num) => `000${num}`.slice(-3))
+            .join(''))
+        const num2 = Number(b.split('.').map((num) => `000${num}`.slice(-3))
+            .join(''))
+
+
+        return num1 - num2
+
+    })
+
+    return incrementIp(ipsArray[ipsArray.length - 1])
 
 }
 
