@@ -12,17 +12,6 @@ mongoose.connect(process.env.DB_CONNECTION_STRING, {
 })
     .then(console.log('Database connected'))
 
-// checks for root permission in order to access the WG interface
-if (process.env.SUDO_UID) {
-
-    console.log('Root permission acquired')
-
-} else {
-
-    throw new Error('Root permission failed, terminating')
-
-}
-
 // load peer information in the database into WireGuard CLI
 require('./wg/index').init()
     .then(console.log('WireGuard initialized'))
